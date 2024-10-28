@@ -2,16 +2,18 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol"; // Changed this import
+// Remove this since ServiceManagerBase might already include ownership functionality
+// import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol"; 
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@eigenlayer-middleware/ServiceManagerBase.sol";
 import "./ITriggerXTaskManagerV1.sol";
 
-contract TriggerXServiceManager is Initializable, OwnableUpgradeable, ServiceManagerBase {
-    using EnumerableSet for EnumerableSet.AddressSet; // Changed this line
+// Remove OwnableUpgradeable from inheritance since ServiceManagerBase likely handles ownership
+contract TriggerXServiceManagerV1 is Initializable, ServiceManagerBase {
+    using EnumerableSet for EnumerableSet.AddressSet;
 
-    ITriggerXTaskManager public triggerXTaskManager;
-    EnumerableSet.AddressSet private _operators; // Changed this line
+    ITriggerXTaskManagerV1 public triggerXTaskManager;
+    EnumerableSet.AddressSet private _operators;
     mapping(address => bool) public operatorBlacklist;
     uint8 public quorumThresholdPercentage;
 
@@ -24,20 +26,21 @@ contract TriggerXServiceManager is Initializable, OwnableUpgradeable, ServiceMan
         _;
     }
 
-    // Initialize function to replace constructor
     function initialize(
         IAVSDirectory __avsDirectory,
         IRegistryCoordinator __registryCoordinator,
         IStakeRegistry __stakeRegistry,
-        ITriggerXTaskManager __triggerXTaskManager,
+        ITriggerXTaskManagerV1 __triggerXTaskManager,
         address initialOwner
     ) public initializer {
-        __ServiceManagerBase_init(__avsDirectory, __registryCoordinator, __stakeRegistry); // Initialize base contract
-        __Ownable_init(); // Initialize OwnableUpgradeable
+        __ServiceManagerBase_init(__avsDirectory, __registryCoordinator, __stakeRegistry);
+        // Remove __Ownable_init() since ServiceManagerBase should handle ownership
         triggerXTaskManager = __triggerXTaskManager;
-        transferOwnership(initialOwner); // Set initial owner
+        // Use the ownership transfer method from ServiceManagerBase if available
+        transferOwnership(initialOwner);
     }
 
+    // Rest of your contract remains the same
     function registerOperatorToAVS(
         address operator,
         ISignatureUtils.SignatureWithSaltAndExpiry memory operatorSignature

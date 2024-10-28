@@ -3,7 +3,7 @@ pragma solidity ^0.8.9;
 
 import "@eigenlayer-middleware/libraries/BN254.sol";
 
-interface ITriggerXTaskManager {
+interface ITriggerXTaskManagerV1 {
     // EVENTS
     event NewTaskCreated(uint32 indexed taskIndex, Task task);
 

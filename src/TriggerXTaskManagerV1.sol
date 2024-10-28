@@ -3,15 +3,15 @@ pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@eigenlayer-middleware/BLSSignatureChecker.sol";
-import "@eigenlayer-middleware/permissions/Pausable.sol";
+import {BLSSignatureChecker, IRegistryCoordinator} from "@eigenlayer-middleware/BLSSignatureChecker.sol";
 import "./ITriggerXTaskManagerV1.sol";
-import "./TriggerXServiceManagerV1.sol";
+import {TriggerXServiceManagerV1} from "./TriggerXServiceManagerV1.sol";
 
-contract TriggerXTaskManager is Initializable, OwnableUpgradeable, Pausable, BLSSignatureChecker, ITriggerXTaskManager {
+contract TriggerXTaskManagerV1 is Initializable, OwnableUpgradeable, ITriggerXTaskManagerV1 {
     using BN254 for BN254.G1Point;
 
-    uint32 public taskResponseWindowBlock;  // Remove 'immutable' to allow updating during initialize
+    BLSSignatureChecker public signatureChecker;
+    uint32 public taskResponseWindowBlock;
     uint32 public constant TASK_CHALLENGE_WINDOW_BLOCK = 100;
     uint256 internal constant _THRESHOLD_DENOMINATOR = 100;
 
@@ -22,7 +22,7 @@ contract TriggerXTaskManager is Initializable, OwnableUpgradeable, Pausable, BLS
 
     address public aggregator;
 
-    TriggerXServiceManager public serviceManager;
+    TriggerXServiceManagerV1 public serviceManager;
 
     modifier onlyAggregator() {
         require(msg.sender == aggregator, "Aggregator must be the caller");
@@ -34,18 +34,22 @@ contract TriggerXTaskManager is Initializable, OwnableUpgradeable, Pausable, BLS
         _;
     }
 
+    constructor() {
+        _disableInitializers();
+    }
+
     // Initialize function to replace constructor
     function initialize(
         IRegistryCoordinator _registryCoordinator,
         uint32 _taskResponseWindowBlock,
-        TriggerXServiceManager _serviceManager,
-        IPauserRegistry _pauserRegistry,
+        TriggerXServiceManagerV1 _serviceManager,
         address initialOwner,
         address _aggregator
     ) public initializer {
-        __BLSSignatureChecker_init(_registryCoordinator);
         __Ownable_init();
-        __Pausable_init(_pauserRegistry, UNPAUSE_ALL);
+        
+        // Create a new BLSSignatureChecker instance
+        signatureChecker = new BLSSignatureChecker(_registryCoordinator);
         
         taskResponseWindowBlock = _taskResponseWindowBlock;
         serviceManager = _serviceManager;
@@ -99,7 +103,7 @@ contract TriggerXTaskManager is Initializable, OwnableUpgradeable, Pausable, BLS
         (
             QuorumStakeTotals memory quorumStakeTotals,
             bytes32 hashOfNonSigners
-        ) = checkSignatures(
+        ) = signatureChecker.checkSignatures(
                 message,
                 task.quorumNumbers,
                 task.taskCreatedBlock,
